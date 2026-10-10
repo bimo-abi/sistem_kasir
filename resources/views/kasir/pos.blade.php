@@ -5,25 +5,73 @@
 @push('styles')
 <style>
     .pos-header-card {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        color: #ffffff;
-        border-radius: 12px;
+        background: transparent;
+        color: #1f2937;
+        border-radius: 0;
+        border-bottom: 1px solid #dfe3e8;
+        padding: 0.5rem 0 1rem !important;
     }
     .pos-card-left, .pos-card-right {
         background: #ffffff;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e1e5e9;
+        border-radius: 6px;
+        box-shadow: 0 2px 5px rgba(31, 41, 55, 0.04);
     }
+    .pos-header-card .text-white,
+    .pos-header-card .text-white-50 {
+        color: #263238 !important;
+    }
+    .pos-header-card .text-white-50 { opacity: 0.68; }
+    .pos-header-card .text-warning { color: #1769aa !important; }
+    .pos-header-card .text-info { color: #37474f !important; }
+    .pos-summary-heading {
+        color: #303943;
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+    }
+    .pos-summary-details {
+        background: #fff !important;
+        border: 1px solid #e6e9ed !important;
+        border-radius: 6px;
+    }
+    .pos-payment-content {
+        display: flex;
+        flex-direction: column;
+    }
+    .pos-summary-heading { order: 0; }
+    .pos-summary-details { order: 1; }
+    .grand-total-box {
+        order: 2;
+        background: #f3f4f7;
+        color: #222d35;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 14px 16px;
+        text-align: left !important;
+    }
+    .grand-total-box .text-white-50 { color: #66717b !important; }
+    .grand-total-box .text-white-50,
+    .grand-total-box .text-white { color: #222d35 !important; }
+    .pos-payment-method { order: 3; }
+    .pos-paid-amount { order: 4; }
+    .pos-change-alert { order: 5; background: #d2eadf !important; border-color: #b9ddcb !important; }
+    .pos-payment-content > .pos-paid-amount {
+        background: #edf5fc;
+        border: 1px solid #d2e4f4;
+        border-radius: 6px;
+        padding: 12px;
+    }
+    .pos-payment-content > .pos-paid-amount .input-group-text { border-color: #b7d3ec; }
+    .pos-payment-content > .pos-paid-amount .form-control { border-color: #9fc5e8; }
+    .pos-actions { margin-top: 0.5rem !important; }
+    .pos-actions .btn { min-height: 48px; border-radius: 5px !important; }
+    .pos-actions .btn-pay { min-height: 54px; }
     .cart-table th {
-        background-color: #f8fafc;
+        background-color: #f2f3f6;
+        color: #3b434b;
         font-size: 0.8rem;
         text-transform: uppercase;
-    }
-    .grand-total-box {
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        color: #ffffff;
-        border-radius: 10px;
-        padding: 16px;
     }
     .quick-cash-btn {
         font-weight: 600;
@@ -39,6 +87,13 @@
         overflow-y: auto;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
+    @media (max-width: 767.98px) {
+        .pos-header-card .row > div:last-child { text-align: left !important; }
+        .pos-header-card .d-inline-block { margin: 0.5rem 0.75rem 0 0 !important; }
+        .pos-card-left, .pos-card-right { padding: 1rem !important; }
+        .pos-actions .btn { padding: 0.65rem 0.35rem !important; font-size: 0.8rem; }
+        .cart-table { min-width: 680px; }
+    }
 </style>
 @endpush
 
@@ -47,7 +102,7 @@
 <div class="pos-header-card p-3 mb-3">
     <div class="row align-items-center">
         <div class="col-md-6">
-            <h4 class="fw-bold mb-0 text-white"><i class="fa-solid fa-store text-primary me-2"></i> MINIMARKET SEJAHTERA</h4>
+            <h4 class="fw-bold mb-0 text-white"><i class="fa-solid fa-store text-primary me-2"></i> TOKO RETAIL MAKMUR</h4>
             <small class="text-white-50"><i class="fa-solid fa-location-dot me-1"></i> Jl. Pemuda No. 45, Jakarta Pusat | Telp: (021) 555-0192</small>
         </div>
         <div class="col-md-6 text-md-end mt-2 mt-md-0">
@@ -69,7 +124,7 @@
 
 <div class="row g-3">
     <!-- AREA KIRI: Pencarian & Keranjang Belanja -->
-    <div class="col-lg-7">
+    <div class="col-lg-8">
         <div class="pos-card-left p-3 h-100 d-flex flex-column">
             <!-- Form Pencarian / Scan Barcode -->
             <div class="position-relative mb-3">
@@ -117,10 +172,7 @@
                 </table>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center pt-2">
-                <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearCart()">
-                    <i class="fa-solid fa-trash me-1"></i> Kosongkan Keranjang
-                </button>
+            <div class="d-flex justify-content-end align-items-center pt-2">
                 <div class="fs-6 fw-bold text-dark">
                     Total Item: <span id="disp-total-items-qty" class="text-primary">0</span> pcs (<span id="disp-total-items-type" class="text-secondary">0</span> jenis)
                 </div>
@@ -129,9 +181,10 @@
     </div>
 
     <!-- AREA KANAN: Ringkasan Pembayaran & Checkout -->
-    <div class="col-lg-5">
+    <div class="col-lg-4">
         <div class="pos-card-right p-3 h-100 d-flex flex-column justify-content-between">
-            <div>
+            <div class="pos-payment-content">
+                <div class="pos-summary-heading">Ringkasan Pembayaran</div>
                 <!-- Box Display Total Akhir -->
                 <div class="grand-total-box mb-3 text-center">
                     <span class="text-white-50 fs-7 text-uppercase fw-semibold d-block">TOTAL AKHIR (GRAND TOTAL)</span>
@@ -139,7 +192,7 @@
                 </div>
 
                 <!-- Form Ringkasan Perhitungan -->
-                <div class="card bg-light border-0 p-3 mb-3">
+                <div class="card bg-light border-0 p-3 mb-3 pos-summary-details">
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Subtotal Barang:</span>
                         <strong class="text-dark" id="disp-subtotal">Rp 0</strong>
@@ -177,7 +230,7 @@
                 </div>
 
                 <!-- Input Pembayaran & Metode -->
-                <div class="mb-3">
+                <div class="mb-3 pos-payment-method">
                     <label class="form-label fw-bold text-dark fs-7">Metode Pembayaran</label>
                     <select id="payment-method-select" class="form-select fw-semibold text-primary">
                         <option value="Tunai" selected>Tunai (Cash)</option>
@@ -189,7 +242,7 @@
                     </select>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 pos-paid-amount">
                     <label for="input-paid-amount" class="form-label fw-bold text-dark fs-7">
                         Uang Dibayar (Rp) - <span class="text-primary">Tekan F4</span>
                     </label>
@@ -208,7 +261,7 @@
                 </div>
 
                 <!-- Kembalian / Peringatan Kurang -->
-                <div class="alert p-3 mb-3 rounded-3" id="change-alert-box" style="background-color: #f8fafc; border: 1px solid #cbd5e1;">
+                <div class="alert p-3 mb-3 rounded-3 pos-change-alert" id="change-alert-box">
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="fw-semibold text-secondary" id="change-label">Kembalian:</span>
                         <strong class="fs-4 font-monospace text-dark" id="disp-change-amount">Rp 0</strong>
@@ -218,14 +271,19 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="row g-2 mt-2">
+            <div class="row g-2 mt-2 pos-actions">
                 <div class="col-6">
                     <button type="button" class="btn btn-warning w-100 py-3 fw-bold rounded-3" onclick="holdTransaction()">
                         <i class="fa-solid fa-pause me-1"></i> Tahan Transaksi
                     </button>
                 </div>
                 <div class="col-6">
-                    <button type="button" id="btn-submit-pay" class="btn btn-success w-100 py-3 fw-bold rounded-3 fs-6" onclick="submitCheckout()">
+                    <button type="button" class="btn btn-danger w-100 py-3 fw-bold rounded-3" onclick="clearCart()">
+                        <i class="fa-solid fa-ban me-1"></i> Batal
+                    </button>
+                </div>
+                <div class="col-12">
+                    <button type="button" id="btn-submit-pay" class="btn btn-success btn-pay w-100 py-3 fw-bold rounded-3 fs-6" onclick="submitCheckout()">
                         <i class="fa-solid fa-print me-1"></i> Bayar & Cetak
                     </button>
                 </div>
@@ -419,7 +477,7 @@
         // total_diskon = (subtotal * discPercent / 100) + discNominal
         const totalDiscount = (subtotal * (discPercent / 100)) + discNominal;
         const totalTax = (subtotal - totalDiscount) * (taxPercent / 100);
-        
+
         // Total Akhir = Max(0, Subtotal - Total Diskon + Pajak + Biaya Lain)
         grandTotal = Math.max(0, subtotal - totalDiscount + totalTax + otherCost);
         document.getElementById('disp-grand-total').innerText = 'Rp ' + Math.round(grandTotal).toLocaleString('id-ID');
