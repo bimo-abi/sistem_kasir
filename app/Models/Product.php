@@ -4,19 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'category_id',
         'code',
         'barcode',
         'name',
+        'image_path',
         'price',
         'stock',
         'is_active',
     ];
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
 
     protected function casts(): array
     {
@@ -46,8 +54,8 @@ class Product extends Model
 
         return $query->where(function ($q) use ($keyword) {
             $q->where('name', 'like', "%{$keyword}%")
-              ->orWhere('code', 'like', "%{$keyword}%")
-              ->orWhere('barcode', 'like', "%{$keyword}%");
+                ->orWhere('code', 'like', "%{$keyword}%")
+                ->orWhere('barcode', 'like', "%{$keyword}%");
         });
     }
 
@@ -56,6 +64,6 @@ class Product extends Model
      */
     public function getFormattedPriceAttribute(): string
     {
-        return 'Rp ' . number_format($this->price, 0, ',', '.');
+        return 'Rp '.number_format($this->price, 0, ',', '.');
     }
 }

@@ -7,6 +7,25 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Praktikum Minggu 11: Struk dan Midtrans
+
+1. Salin nilai Midtrans Sandbox ke `.env` tanpa membagikan Server Key:
+
+   ```dotenv
+   MIDTRANS_SERVER_KEY=SB-Mid-server-...
+   MIDTRANS_CLIENT_KEY=SB-Mid-client-...
+   MIDTRANS_IS_PRODUCTION=false
+   MIDTRANS_SNAP_REDIRECT=true
+   MIDTRANS_SANITIZE=true
+   MIDTRANS_3DS=true
+   ```
+
+2. Jalankan `php artisan config:clear` lalu `php artisan migrate`.
+3. Mode struk default adalah simulasi PDF backend. Berkas dibuat otomatis setelah transaksi tunai atau pembayaran Midtrans terkonfirmasi, disimpan di `storage/app/private/receipts`, dan dapat diunduh dari halaman struk.
+4. Untuk printer thermal Windows, atur `RECEIPT_PRINTER=windows` dan `RECEIPT_PRINTER_NAME` sesuai nama printer yang sudah dibagikan/terpasang, lalu jalankan aplikasi pada komputer yang terhubung ke printer.
+5. Atur URL notifikasi Midtrans ke `https://<domain-publik>/midtrans/notification`. Endpoint ini harus dapat diakses dari internet; gunakan tunnel publik saat pengembangan lokal.
+6. Jalankan aplikasi dan Vite dengan `composer run dev`, lalu buka halaman kasir dan pilih metode pembayaran Midtrans untuk pengujian Sandbox.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

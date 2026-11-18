@@ -43,6 +43,7 @@
                         <th class="ps-4">#</th>
                         <th>Kode Produk</th>
                         <th>Barcode</th>
+                        <th>Gambar</th>
                         <th>Nama Barang</th>
                         <th class="text-end">Harga (Rp)</th>
                         <th class="text-center">Stok</th>
@@ -56,6 +57,13 @@
                             <td class="ps-4 text-muted fw-semibold">{{ $products->firstItem() + $index }}</td>
                             <td><span class="badge bg-secondary font-monospace">{{ $product->code }}</span></td>
                             <td><span class="font-monospace text-muted">{{ $product->barcode ?: '-' }}</span></td>
+                            <td>
+                                @if($product->image_path)
+                                    <img src="{{ asset('storage/' . $product->image_path) }}" alt="{{ $product->name }}" loading="lazy" style="width:48px;height:48px;object-fit:contain" class="border rounded bg-white p-1">
+                                @else
+                                    <span class="text-muted small">Belum ada</span>
+                                @endif
+                            </td>
                             <td class="fw-semibold text-dark">{{ $product->name }}</td>
                             <td class="text-end fw-bold text-primary">{{ $product->formatted_price }}</td>
                             <td class="text-center">
@@ -91,7 +99,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
+                            <td colspan="9" class="text-center py-5 text-muted">
                                 <i class="fa-solid fa-box-open fs-1 mb-3 d-block text-secondary"></i>
                                 <span>Tidak ada data produk yang ditemukan.</span>
                             </td>

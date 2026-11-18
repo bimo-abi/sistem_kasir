@@ -12,7 +12,7 @@
 
         <div class="card card-custom">
             <div class="card-body p-4">
-                <form action="{{ route('admin.products.update', $product->id) }}" method="POST">
+                <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
@@ -59,6 +59,24 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
+
+                        <div class="col-md-12">
+                            <hr class="my-2">
+                            <h6 class="fw-bold mb-2">Gambar Produk (Intervention Image)</h6>
+                            @if($product->image_path)
+                                <div class="mb-3"><img src="{{ asset('storage/' . $product->image_path) }}" alt="{{ $product->name }}" style="max-width:180px;max-height:180px;object-fit:contain" class="border rounded p-1"></div>
+                            @endif
+                            <label for="image" class="form-label">Unggah gambar baru (opsional; JPG, PNG, WEBP; maks. 5 MB)</label>
+                            <input type="file" name="image" id="image" accept="image/jpeg,image/png,image/webp" class="form-control @error('image') is-invalid @enderror">
+                            @error('image')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">Jika tidak memilih gambar baru, gambar lama tetap digunakan.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="image_rotate" class="form-label">Rotasi gambar baru</label>
+                            <select name="image_rotate" id="image_rotate" class="form-select"><option value="0">Tidak diputar</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="image_crop" id="image_crop" value="1"><label class="form-check-label" for="image_crop">Crop persegi 800×800</label></div></div>
+                        <div class="col-md-4 d-flex align-items-end"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="image_watermark" id="image_watermark" value="1"><label class="form-check-label" for="image_watermark">Tambah watermark</label></div></div>
 
                         <div class="col-md-12">
                             <div class="form-check form-switch mt-2">

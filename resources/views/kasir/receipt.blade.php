@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Struk Pembayaran - {{ $transaction->invoice_number }}</title>
+    @if($transaction->payment_method === 'Midtrans' && $transaction->status === 'held')
+        <meta http-equiv="refresh" content="5">
+    @endif
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -81,19 +84,41 @@
             <a href="{{ route('kasir.pos') }}" class="btn btn-secondary fw-semibold">
                 <i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Kasir
             </a>
-            <button type="button" class="btn btn-primary fw-semibold px-4" onclick="window.print()">
-                <i class="fa-solid fa-print me-1"></i> Cetak Struk (Print)
-            </button>
+            @if($transaction->status === 'completed')
+                <a href="{{ route('kasir.invoice.pdf', $transaction->id) }}" class="btn btn-danger fw-semibold">
+                    <i class="fa-solid fa-file-pdf me-1"></i> Unduh Invoice PDF
+                </a>
+                @if(config('receipt.printer') === 'pdf')
+                    <a href="{{ route('kasir.receipt.pdf', $transaction->id) }}" class="btn btn-primary fw-semibold px-4">
+                        <i class="fa-solid fa-file-pdf me-1"></i> Unduh Struk PDF
+                    </a>
+                @else
+                    <span class="btn btn-success fw-semibold px-4">
+                        <i class="fa-solid fa-print me-1"></i> Struk dicetak otomatis
+                    </span>
+                @endif
+            @endif
         </div>
     </div>
 
     <!-- Kertas Struk Thermal -->
     <div class="receipt-container">
+        @if($transaction->payment_method === 'Midtrans' && $transaction->status !== 'completed')
+            <div class="alert {{ $transaction->status === 'held' ? 'alert-warning' : 'alert-danger' }} text-center">
+                <strong>
+                    {{ $transaction->status === 'held' ? 'Menunggu konfirmasi pembayaran Midtrans.' : 'Pembayaran Midtrans tidak berhasil.' }}
+                </strong>
+                @if($transaction->status === 'held')
+                    <div class="small mt-1">Halaman ini diperbarui otomatis. Struk dapat dicetak setelah pembayaran terkonfirmasi.</div>
+                @endif
+            </div>
+        @endif
+
         <!-- Header Toko -->
         <div class="receipt-header">
-            <h5 class="receipt-title mb-1">MINIMARKET SEJAHTERA</h5>
-            <div class="fs-7">Jl. Pemuda No. 45, Jakarta Pusat</div>
-            <div class="fs-7">Telp: (021) 555-0192</div>
+            <h5 class="receipt-title mb-1">{{ config('receipt.store_name') }}</h5>
+            <div class="fs-7">{{ config('receipt.store_address') }}</div>
+            <div class="fs-7">Telp: {{ config('receipt.store_phone') }}</div>
         </div>
 
         <!-- Info Transaksi -->
@@ -182,12 +207,14 @@
 
         <div class="dashed-divider"></div>
 
-        <!-- Footer Struk -->
-        <div class="text-center fs-7 mt-3">
-            <div>*** TERIMA KASIH ***</div>
-            <div>BARANG YANG SUDAH DIBELI</div>
-            <div>TIDAK DAPAT DITUKAR / DIKEMBALIKAN</div>
-        </div>
+        @if($transaction->status === 'completed')
+            <!-- Footer Struk -->
+            <div class="text-center fs-7 mt-3">
+                <div>*** TERIMA KASIH ***</div>
+                <div>BARANG YANG SUDAH DIBELI</div>
+                <div>TIDAK DAPAT DITUKAR / DIKEMBALIKAN</div>
+            </div>
+        @endif
     </div>
 
 </body>

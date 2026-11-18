@@ -76,9 +76,14 @@
                             </td>
                             <td class="text-end fw-bold text-primary font-monospace">{{ $trx->formatted_grand_total }}</td>
                             <td class="text-center pe-4">
-                                <a href="{{ route('kasir.receipt', $trx->id) }}" class="btn btn-outline-primary btn-sm px-3" target="_blank" title="Cetak Ulang Struk">
-                                    <i class="fa-solid fa-print me-1"></i> Cetak Struk
-                                </a>
+                                <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                    <a href="{{ route('kasir.receipt', $trx->id) }}" class="btn btn-outline-primary btn-sm px-2" target="_blank" title="Cetak Ulang Struk">
+                                        <i class="fa-solid fa-print me-1"></i> Struk
+                                    </a>
+                                    <a href="{{ route('kasir.invoice.pdf', $trx->id) }}" class="btn btn-outline-danger btn-sm px-2" title="Unduh Invoice PDF">
+                                        <i class="fa-solid fa-file-pdf me-1"></i> Invoice PDF
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     @empty

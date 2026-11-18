@@ -3,8 +3,10 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReceiptPrintController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +23,9 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisterController::class, 'showRegisterForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
 });
+
+Route::post('/midtrans/notification', [MidtransController::class, 'notification'])
+    ->name('midtrans.notification');
 
 // Authenticated Routes (Harus Login)
 Route::middleware('auth')->group(function () {
@@ -39,6 +44,7 @@ Route::middleware('auth')->group(function () {
 
         // Checkout & Transaksi Ditahan (Tahap 7 & 8)
         Route::post('/checkout', [TransactionController::class, 'store'])->name('checkout.store');
+        Route::post('/midtrans/checkout', [MidtransController::class, 'checkout'])->name('midtrans.checkout');
         Route::post('/hold', [TransactionController::class, 'hold'])->name('checkout.hold');
         Route::get('/held', [TransactionController::class, 'heldIndex'])->name('held.index');
         Route::get('/held/resume/{id}', [TransactionController::class, 'resumeHeld'])->name('held.resume');
@@ -46,6 +52,8 @@ Route::middleware('auth')->group(function () {
 
         // Struk & Riwayat Transaksi (Tahap 9 & 10)
         Route::get('/receipt/{id}', [TransactionController::class, 'receipt'])->name('receipt');
+        Route::get('/receipt/{transaction}/pdf', [ReceiptPrintController::class, 'download'])->name('receipt.pdf');
+        Route::get('/invoice/{id}/pdf', [TransactionController::class, 'invoicePdf'])->name('invoice.pdf');
         Route::get('/history', [TransactionController::class, 'history'])->name('history');
     });
 });

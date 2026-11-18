@@ -2,20 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\TransactionCompleted;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
+use App\Services\ReceiptPrinter;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Exception;
+use Throwable;
 
 class TransactionController extends Controller
 {
     /**
      * Simpan Transaksi Pembayaran POS (Status: Completed, Atomic DB Transaction).
      */
-    public function store(Request $request)
+    public function store(Request $request, ReceiptPrinter $receiptPrinter)
     {
         $request->validate([
             'items' => ['required', 'array', 'min:1'],
@@ -26,7 +30,7 @@ class TransactionController extends Controller
             'tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'other_cost' => ['nullable', 'numeric', 'min:0'],
             'paid_amount' => ['required', 'numeric', 'min:0'],
-            'payment_method' => ['required', 'string'],
+            'payment_method' => ['required', 'string', 'not_in:Midtrans'],
         ]);
 
         try {
@@ -40,7 +44,7 @@ class TransactionController extends Controller
                         ->lockForUpdate()
                         ->first();
 
-                    if (!$product || !$product->is_active) {
+                    if (! $product || ! $product->is_active) {
                         throw new Exception("Produk \"{$item['name']}\" tidak aktif atau tidak ditemukan.");
                     }
 
@@ -73,13 +77,13 @@ class TransactionController extends Controller
                 $paidAmount = floatval($request->paid_amount);
 
                 if ($paidAmount < $grandTotal) {
-                    throw new Exception("Uang dibayar (Rp " . number_format($paidAmount, 0, ',', '.') . ") kurang dari Total Akhir (Rp " . number_format($grandTotal, 0, ',', '.') . ").");
+                    throw new Exception('Uang dibayar (Rp '.number_format($paidAmount, 0, ',', '.').') kurang dari Total Akhir (Rp '.number_format($grandTotal, 0, ',', '.').').');
                 }
 
                 $changeAmount = $paidAmount - $grandTotal;
 
                 // 3. Simpan Header Transaksi
-                $invoiceNumber = 'TRX-' . date('Ymd') . '-' . rand(1000, 9999);
+                $invoiceNumber = 'TRX-'.date('Ymd').'-'.rand(1000, 9999);
                 $trx = Transaction::create([
                     'invoice_number' => $invoiceNumber,
                     'user_id' => Auth::id(),
@@ -116,20 +120,41 @@ class TransactionController extends Controller
                 return $trx;
             });
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Transaksi berhasil disimpan!',
-                'transaction_id' => $transaction->id,
-                'invoice_number' => $transaction->invoice_number,
-                'redirect_url' => route('kasir.receipt', $transaction->id),
-            ]);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
         }
+
+        TransactionCompleted::dispatch(
+            $transaction->id,
+            $transaction->invoice_number,
+            $transaction->grand_total,
+        );
+
+        $receiptPath = null;
+        $receiptPrinted = false;
+        $receiptPrintMessage = null;
+
+        try {
+            $receiptPath = $receiptPrinter->print($transaction);
+            $receiptPrinted = true;
+        } catch (Throwable $exception) {
+            report($exception);
+            $receiptPrintMessage = 'Transaksi berhasil, tetapi struk gagal dibuat. Silakan coba unduh atau cetak ulang dari halaman struk.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaksi berhasil disimpan!',
+            'transaction_id' => $transaction->id,
+            'invoice_number' => $transaction->invoice_number,
+            'redirect_url' => route('kasir.receipt', $transaction->id),
+            'receipt_printed' => $receiptPrinted,
+            'receipt_pdf_url' => $receiptPath !== null ? route('kasir.receipt.pdf', $transaction->id) : null,
+            'receipt_print_message' => $receiptPrintMessage,
+        ]);
     }
 
     /**
@@ -171,7 +196,7 @@ class TransactionController extends Controller
                 $otherCost = max(0, floatval($request->other_cost));
                 $grandTotal = max(0, $subtotal - $totalDiscount + $totalTax + $otherCost);
 
-                $invoiceNumber = 'HLD-' . date('Ymd') . '-' . rand(1000, 9999);
+                $invoiceNumber = 'HLD-'.date('Ymd').'-'.rand(1000, 9999);
                 $trx = Transaction::create([
                     'invoice_number' => $invoiceNumber,
                     'user_id' => Auth::id(),
@@ -225,6 +250,7 @@ class TransactionController extends Controller
     {
         $heldTransactions = Transaction::with('details')
             ->where('status', 'held')
+            ->whereDoesntHave('midtransOrder')
             ->latest()
             ->get();
 
@@ -238,6 +264,7 @@ class TransactionController extends Controller
     {
         $transaction = Transaction::with('details.product')
             ->where('status', 'held')
+            ->whereDoesntHave('midtransOrder')
             ->findOrFail($id);
 
         return response()->json([
@@ -251,7 +278,9 @@ class TransactionController extends Controller
      */
     public function cancelHeld($id)
     {
-        $transaction = Transaction::where('status', 'held')->findOrFail($id);
+        $transaction = Transaction::where('status', 'held')
+            ->whereDoesntHave('midtransOrder')
+            ->findOrFail($id);
         $transaction->update(['status' => 'cancelled']);
 
         return redirect()->route('kasir.held.index')
@@ -264,7 +293,23 @@ class TransactionController extends Controller
     public function receipt($id)
     {
         $transaction = Transaction::with(['details', 'user'])->findOrFail($id);
+
         return view('kasir.receipt', compact('transaction'));
+    }
+
+    /**
+     * Buat dan unduh invoice PDF berdasarkan transaksi yang sudah selesai.
+     */
+    public function invoicePdf($id)
+    {
+        $transaction = Transaction::with(['details', 'user'])
+            ->where('status', 'completed')
+            ->findOrFail($id);
+
+        $pdf = Pdf::loadView('invoices.invoice', compact('transaction'))
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download('Invoice-'.$transaction->invoice_number.'.pdf');
     }
 
     /**

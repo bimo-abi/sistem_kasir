@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Database\Seeder;
 
@@ -12,8 +13,16 @@ class ProductSeeder extends Seeder
      */
     public function run(): void
     {
+        $categoryIds = [
+            'makanan' => Category::where('slug', 'makanan')->value('id'),
+            'minuman' => Category::where('slug', 'minuman')->value('id'),
+            'perawatan' => Category::where('slug', 'perawatan')->value('id'),
+            'sembako' => Category::where('slug', 'sembako')->value('id'),
+        ];
+
         $products = [
             [
+                'category_id' => $categoryIds['makanan'],
                 'code' => 'PRD-001',
                 'barcode' => '899238811001',
                 'name' => 'Indomie Goreng Spesial 85g',
@@ -22,6 +31,7 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'category_id' => $categoryIds['minuman'],
                 'code' => 'PRD-002',
                 'barcode' => '899238811002',
                 'name' => 'Air Mineral Aqua 600ml',
@@ -30,6 +40,7 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'category_id' => $categoryIds['minuman'],
                 'code' => 'PRD-003',
                 'barcode' => '899100110003',
                 'name' => 'Teh Botol Sosro 450ml',
@@ -38,6 +49,7 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'category_id' => $categoryIds['sembako'],
                 'code' => 'PRD-004',
                 'barcode' => '899277100004',
                 'name' => 'Minyak Goreng Bimoli 1L',
@@ -46,6 +58,7 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'category_id' => $categoryIds['sembako'],
                 'code' => 'PRD-005',
                 'barcode' => '899288100005',
                 'name' => 'Gula Pasir Gulaku 1kg',
@@ -54,6 +67,7 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'category_id' => $categoryIds['minuman'],
                 'code' => 'PRD-006',
                 'barcode' => '899999100006',
                 'name' => 'Susu Ultra Milk Cokelat 250ml',
@@ -62,6 +76,7 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'category_id' => $categoryIds['perawatan'],
                 'code' => 'PRD-007',
                 'barcode' => '899888100007',
                 'name' => 'Sabun Lifebuoy Red 110g',
@@ -70,6 +85,7 @@ class ProductSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'category_id' => $categoryIds['perawatan'],
                 'code' => 'PRD-008',
                 'barcode' => '899777100008',
                 'name' => 'Shampoo Pantene 160ml',

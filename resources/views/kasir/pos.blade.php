@@ -239,6 +239,9 @@
                         <option value="Kredit">Kartu Kredit</option>
                         <option value="E-Wallet">E-Wallet (Gopay/OVO/Dana)</option>
                         <option value="Transfer">Transfer Bank</option>
+                        <option value="Midtrans" @disabled(! $midtransAvailable)>
+                            Midtrans{{ $midtransAvailable ? '' : ' (atur key di .env)' }}
+                        </option>
                     </select>
                 </div>
 
@@ -294,11 +297,17 @@
 @endsection
 
 @push('scripts')
+@if (! config('midtrans.snap_redirect') && $midtransAvailable)
+    <script
+        src="{{ config('midtrans.is_production') ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}"
+        data-client-key="{{ config('midtrans.client_key') }}"></script>
+@endif
 <script>
     // State Keranjang Belanja POS
     let cart = [];
     let grandTotal = 0;
     let subtotal = 0;
+    let pendingMidtransCheckout = null;
 
     // Realtime Clock
     setInterval(() => {
@@ -488,8 +497,13 @@
         const changeDisp = document.getElementById('disp-change-amount');
         const warningMsg = document.getElementById('payment-warning-msg');
         const submitBtn = document.getElementById('btn-submit-pay');
+        const isMidtrans = document.getElementById('payment-method-select').value === 'Midtrans';
 
-        if (paidAmount < grandTotal && cart.length > 0) {
+        if (isMidtrans) {
+            changeDisp.innerText = 'Pembayaran melalui Midtrans';
+            warningMsg.classList.add('d-none');
+            submitBtn.disabled = cart.length === 0;
+        } else if (paidAmount < grandTotal && cart.length > 0) {
             changeDisp.innerText = 'Rp 0';
             warningMsg.classList.remove('d-none');
             warningMsg.innerText = `Uang dibayar kurang Rp ${Math.abs(change).toLocaleString('id-ID')}`;
@@ -511,6 +525,18 @@
         document.getElementById('input-paid-amount').value = amount;
         calculateTotals();
     }
+
+    function updatePaymentMethodUI() {
+        const isMidtrans = document.getElementById('payment-method-select').value === 'Midtrans';
+        document.querySelector('.pos-paid-amount').classList.toggle('d-none', isMidtrans);
+        document.getElementById('change-alert-box').classList.toggle('d-none', isMidtrans);
+        document.getElementById('btn-submit-pay').innerHTML = isMidtrans
+            ? '<i class="fa-solid fa-credit-card me-1"></i> Bayar via Midtrans'
+            : '<i class="fa-solid fa-print me-1"></i> Bayar & Cetak';
+        calculateTotals();
+    }
+
+    document.getElementById('payment-method-select').addEventListener('change', updatePaymentMethodUI);
 
     // Shortcut Keyboard F2, F4, Esc
     document.addEventListener('keydown', function(e) {
@@ -552,6 +578,7 @@
                 document.getElementById('input-other-cost').value = heldData.other_cost || 0;
                 document.getElementById('payment-method-select').value = heldData.payment_method || 'Tunai';
 
+                updatePaymentMethodUI();
                 renderCartTable();
                 alert(`Melanjutkan transaksi ditahan (${heldData.invoice_number}).`);
             } catch (err) {
@@ -606,6 +633,11 @@
             return;
         }
 
+        if (document.getElementById('payment-method-select').value === 'Midtrans') {
+            submitMidtransCheckout();
+            return;
+        }
+
         const paidAmount = parseFloat(document.getElementById('input-paid-amount').value) || 0;
         if (paidAmount < grandTotal) {
             alert('Uang dibayar belum mencukupi Total Akhir!');
@@ -639,6 +671,9 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                if (data.receipt_print_message) {
+                    alert(data.receipt_print_message);
+                }
                 alert('Transaksi Berhasil Dikeluarkan!');
                 window.location.href = data.redirect_url;
             } else {
@@ -653,5 +688,81 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-print me-1"></i> Bayar & Cetak';
         });
     }
+
+    function submitMidtransCheckout() {
+        if (pendingMidtransCheckout) {
+            openMidtransCheckout(pendingMidtransCheckout);
+            return;
+        }
+
+        const submitBtn = document.getElementById('btn-submit-pay');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Memproses...';
+
+        const payload = {
+            items: cart.map(item => ({ id: item.id, qty: item.qty })),
+            discount_percent: document.getElementById('input-discount-percent').value,
+            discount_nominal: document.getElementById('input-discount-nominal').value,
+            tax_percent: document.getElementById('input-tax-percent').value,
+            other_cost: document.getElementById('input-other-cost').value
+        };
+
+        fetch('{{ route("kasir.midtrans.checkout") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(async response => {
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || Object.values(data.errors || {}).flat()[0] || 'Pembayaran Midtrans gagal dibuat.');
+            }
+
+            pendingMidtransCheckout = data;
+            openMidtransCheckout(data);
+        })
+        .catch(error => {
+            alert(error.message || 'Terjadi kesalahan koneksi server.');
+            updatePaymentMethodUI();
+        });
+    }
+
+    function openMidtransCheckout(data) {
+        if (data.redirect_url) {
+            window.location.assign(data.redirect_url);
+            return;
+        }
+
+        if (!window.snap) {
+            alert('Snap.js belum tersedia. Muat ulang halaman lalu coba kembali.');
+            updatePaymentMethodUI();
+            return;
+        }
+
+        window.snap.pay(data.snap_token, {
+            onSuccess: function() {
+                pendingMidtransCheckout = null;
+                window.location.href = data.receipt_url;
+            },
+            onPending: function() {
+                alert('Pembayaran menunggu konfirmasi Midtrans. Anda dapat melanjutkan pembayaran dari halaman ini.');
+                updatePaymentMethodUI();
+            },
+            onError: function() {
+                alert('Pembayaran gagal. Anda dapat mencoba kembali dari halaman ini.');
+                updatePaymentMethodUI();
+            },
+            onClose: function() {
+                updatePaymentMethodUI();
+            }
+        });
+    }
+
+    updatePaymentMethodUI();
 </script>
 @endpush

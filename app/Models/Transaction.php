@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Transaction extends Model
 {
@@ -58,11 +59,16 @@ class Transaction extends Model
         return $this->hasMany(TransactionDetail::class);
     }
 
+    public function midtransOrder(): HasOne
+    {
+        return $this->hasOne(MidtransOrder::class);
+    }
+
     /**
      * Format Rupiah Grand Total.
      */
     public function getFormattedGrandTotalAttribute(): string
     {
-        return 'Rp ' . number_format($this->grand_total, 0, ',', '.');
+        return 'Rp '.number_format($this->grand_total, 0, ',', '.');
     }
 }

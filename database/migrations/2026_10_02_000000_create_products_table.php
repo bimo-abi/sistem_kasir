@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('code')->unique();
             $table->string('barcode')->nullable()->unique();
             $table->string('name');
+            $table->string('image_path')->nullable();
             $table->decimal('price', 12, 2);
             $table->integer('stock')->default(0);
             $table->boolean('is_active')->default(true);

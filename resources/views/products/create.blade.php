@@ -12,7 +12,7 @@
 
         <div class="card card-custom">
             <div class="card-body p-4">
-                <form action="{{ route('admin.products.store') }}" method="POST">
+                <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
                     <div class="row g-3">
@@ -57,6 +57,27 @@
                             @error('stock')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                        </div>
+
+                        <div class="col-md-12">
+                            <hr class="my-2">
+                            <h6 class="fw-bold mb-1">Gambar Produk (Intervention Image)</h6>
+                            <label for="image" class="form-label">Pilih gambar (JPG, PNG, WEBP; maks. 5 MB)</label>
+                            <input type="file" name="image" id="image" accept="image/jpeg,image/png,image/webp" class="form-control @error('image') is-invalid @enderror">
+                            @error('image')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            <div class="form-text">Gambar otomatis di-resize dan disimpan dalam format WebP.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="image_rotate" class="form-label">Rotasi</label>
+                            <select name="image_rotate" id="image_rotate" class="form-select">
+                                <option value="0">Tidak diputar</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="image_crop" id="image_crop" value="1"><label class="form-check-label" for="image_crop">Crop persegi 800×800</label></div>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="image_watermark" id="image_watermark" value="1"><label class="form-check-label" for="image_watermark">Tambah watermark</label></div>
                         </div>
 
                         <div class="col-md-12">
